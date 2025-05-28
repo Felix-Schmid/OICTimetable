@@ -39,7 +39,7 @@ script instead of just running a local website.
 
 I currently statically include HTML, CSS and images (as base64 strings) in the user script, so we do not
 have to host them somewhere just to fetch them again or include them as resources. However, doing it this
-way made the file quite big and a bit annoying to work with, so I might change that in the fututure.
+way made the file quite big and a bit annoying to work with, so I might change that in the future.
 
 ## Alternative implementation options considered
 
