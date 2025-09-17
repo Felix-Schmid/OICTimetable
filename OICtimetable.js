@@ -666,7 +666,7 @@ function clearTable() {
 
 /** adds a div representing the event to the parent table row */
 function addEventToRow(event, parent, roomKey) {
-	const titleStr = event.d ? event.d : "No Title";
+	const titleStr = event.d && event.d.trim() ? event.d : "No Title";
 	const timeStr = timeToString(event.s) + " - " + timeToString(event.e);
 
 	const div = parent.appendChild(document.createElement("div"));
@@ -678,7 +678,7 @@ function addEventToRow(event, parent, roomKey) {
 
 	const title = div.appendChild(document.createElement("p"));
 	const time = div.appendChild(document.createElement("div"));
-	if (event.d) {
+	if (event.d && event.d.trim()) {
 		title.innerText = event.d; // use innerText to avoid injection
 	} else {
 		title.innerHTML = "<i>No Title</i>"; // use innerHTML for styled string
