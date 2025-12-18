@@ -429,18 +429,24 @@ function addBookingEvent(event, bookingsData, roomid) {
 	const date = new Date();
 	date.setFullYear(date.getFullYear() + 1); // expand max 1 year into future
 	const rangeEnd = ICAL.Time.fromJSDate(date);
+	const start = event.getFirstPropertyValue("dtstart")
 
 	const expand = new ICAL.RecurExpansion({
 		component: event,
-		dtstart: event.getFirstPropertyValue("dtstart")
+		dtstart: start
 	});
 
+	let expanded = false;
 	let next; // next is always an ICAL.Time or null
 	while (next = expand.next()) {
+		expanded = true;
 		if (next.compare(rangeEnd) > 0) {
 			break;
 		}
 		addBookingTime(next, event, bookingsData, roomid);
+	}
+	if (!expanded) {
+		addBookingTime(start, event, bookingsData, roomid);
 	}
 }
 
