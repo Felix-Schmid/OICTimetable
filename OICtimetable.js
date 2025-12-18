@@ -55,8 +55,8 @@ const urlArgs = "?Calendar.format=ICS";
 const buildings = {};
 const usageCharts = {};
 const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const startTime = 360; // 6:00
-const endTime = 1320; // 22:00
+const startTime = 0; // 0:00
+const endTime = 1440; // 24:00
 const timeStep = 15; // 15min steps
 const timeStepSize = 28; // 28px per step
 const roomRowHeight = 54;
@@ -83,7 +83,7 @@ const page = `
 <style>
 /* main menu styling */
 body {
-	font-family: sans-serif;
+	font-family: Arial, sans-serif;
 }
 
 main, .chartRegion {
@@ -235,6 +235,10 @@ th > small {
 	background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAA1ElEQVRIx+2UzRGCMBCFv1gBdkALVCAlYAWWsFoBQwXOVqB2YAmUQAdaAh3gZQ8Zh58MwZED70YW3hd28wKb/i0X8pKqJkAJ5EAC1EAlIu9ogJm/zNhXC2RTkF3AD1x7zLG1curjEEA+UiuWAEQpBFDPrAUDLv5D13X+kKtogIi0wB64AzjnWtt5JiLNuoOmqilw8gKWWqmxFjXAYywLbsA4t/OfDmSgb9gqIs9JgKqeLUDJjI4cvyF9Qz7MNAe4hZyiImKmyaJJ9jLxm6vCOcem9esD2v8ydCSYqJYAAAAASUVORK5CYII=);
 }
 
+#timetable {
+	overflow-x: auto;
+}
+
 #timeDisplay {
 	top: 0;
 	border-radius: 0 10px 10px 0;
@@ -346,9 +350,6 @@ th > small {
 </body>
 </html>`;
 
-// TODO: time marker and events before startTime (6:00) & after endTime (22:00) are cut off
-// TODO: events spanning multiple days are ignored
-
 // call init to start all scripts
 init();
 
@@ -367,11 +368,17 @@ function init() {
 	document.getElementById("dateinput").addEventListener("change", dateInputChanged);
 
 	createTable();
-	document.getElementById("dateinput").valueAsDate = new Date(); // now
+	const now = new Date();
+	document.getElementById("dateinput").valueAsDate = now; // now
 	document.getElementById("openTable").click();
 
 	setInterval(timeTickRefresh, 10000); // refresh shown time every 10s
 	refreshData();
+
+	// try to scroll the current time to the center
+	const minutes = now.getHours() * 60 + now.getMinutes();
+	const width = document.getElementById("timetable").offsetWidth;
+	document.getElementById("timetable").scrollLeft = ((minutes - startTime) / timeStep * timeStepSize) - width / 2;
 }
 
 /** fetch data from OIC, create table and select today as date */
@@ -419,20 +426,41 @@ function addEventsFromICS(icsData, roomid) {
 }
 
 function addBookingEvent(event, bookingsData, roomid) {
+	const date = new Date();
+	date.setFullYear(date.getFullYear() + 1); // expand max 1 year into future
+	const rangeEnd = ICAL.Time.fromJSDate(date);
+
+	const expand = new ICAL.RecurExpansion({
+		component: event,
+		dtstart: event.getFirstPropertyValue("dtstart")
+	});
+
+	let next; // next is always an ICAL.Time or null
+	while (next = expand.next()) {
+		if (next.compare(rangeEnd) > 0) {
+			break;
+		}
+		addBookingTime(next, event, bookingsData, roomid);
+	}
+}
+
+function addBookingTime(time, event, bookingsData, roomid) {
+	const current = time.toJSDate();
+	const summary = event.getFirstPropertyValue("summary");
+
 	const start = event.getFirstPropertyValue("dtstart").toJSDate();
 	const end = event.getFirstPropertyValue("dtend").toJSDate();
-	const desc = event.getFirstPropertyValue("summary");
+	let duration = (end - start) / (1000 * 60); // ms to minutes
 
-	if (start.getFullYear() != end.getFullYear() ||
-		start.getMonth() != end.getMonth() ||
-		start.getDate() != end.getDate()) {
-		console.info("Events spanning days not supported.");
-		console.info(desc + ": " + start + " - " + end);
-	} else {
-		const sMin = start.getHours() * 60 + start.getMinutes();
-		const eMin = end.getHours() * 60 + end.getMinutes();
-		const dateKey = dateToString(start);
+	let currentEnd = new Date(current);
+	currentEnd = currentEnd.setMinutes(currentEnd.getMinutes() + duration);
 
+	while (current < currentEnd) {
+		const offset = current.getHours() * 60 + current.getMinutes();
+		const durationDay = Math.min(duration, endTime - offset); // clamp to end of current day
+		duration -= durationDay;
+
+		const dateKey = dateToString(current);
 		if (bookingsData[dateKey] === undefined) {
 			bookingsData[dateKey] = {};
 		}
@@ -440,8 +468,11 @@ function addBookingEvent(event, bookingsData, roomid) {
 			bookingsData[dateKey][roomid] = [];
 		}
 		bookingsData[dateKey][roomid].push(
-			{"s": sMin, "e": eMin, "d": desc}
+			{"o": offset, "d": durationDay, "s": summary}
 		);
+
+		current.setHours(0, 0, 0, 0); // always begins at midnight for next days
+		current.setDate(current.getDate() + 1);
 	}
 }
 
@@ -518,7 +549,7 @@ function createTable() {
 		const str = document.createElement("strong");
 		str.appendChild(document.createTextNode(roomdata.buildings[b]));
 		th.appendChild(str);
-		if (b == 0) { // first building row has time marker line
+		if (timeMarkLine === undefined) { // first building row has time marker line
 			const timeCell = tr.insertCell();
 			timeCell.style.visibility = "hidden";
 			createTimeMarkLine(timeCell);
@@ -630,9 +661,9 @@ function fillTable(date) {
 			if (date.startsWith("2805")) {
 				const roomName = roomdata.rooms[r].name;
 				if (roomName == "Eve") {
-					addEventToRow({"s": 1080, "e": 1200, "d": "Meet Wall-e today?"}, cell, r);
+					addEventToRow({"o": 1080, "d": 120, "s": "Meet Wall-e today?"}, cell, r);
 				} else if (roomName == "Wall-e") {
-					addEventToRow({"s": 1080, "e": 1200, "d": "Meet Eve today?"}, cell, r);
+					addEventToRow({"o": 1080, "d": 120, "s": "Meet Eve today?"}, cell, r);
 				}
 			}
 			// end easter egg code
@@ -666,20 +697,20 @@ function clearTable() {
 
 /** adds a div representing the event to the parent table row */
 function addEventToRow(event, parent, roomKey) {
-	const titleStr = event.d && event.d.trim() ? event.d : "No Title";
-	const timeStr = timeToString(event.s) + " - " + timeToString(event.e);
+	const titleStr = event.s && event.s.trim() ? event.s : "No Title";
+	const timeStr = timeToString(event.o) + " - " + timeToString(event.o + event.d);
 
 	const div = parent.appendChild(document.createElement("div"));
 	div.classList.add("event");
-	div.style.left = time2Pixels(event.s - startTime);
-	div.style.width = time2Pixels(event.e - event.s);
+	div.style.left = time2Pixels(event.o - startTime);
+	div.style.width = time2Pixels(event.d);
 	div.style.backgroundColor = roomdata.rooms[roomKey].color;
 	div.title = titleStr + "\n" + timeStr;
 
 	const title = div.appendChild(document.createElement("p"));
 	const time = div.appendChild(document.createElement("div"));
-	if (event.d && event.d.trim()) {
-		title.innerText = event.d; // use innerText to avoid injection
+	if (event.s && event.s.trim()) {
+		title.innerText = event.s; // use innerText to avoid injection
 	} else {
 		title.innerHTML = "<i>No Title</i>"; // use innerHTML for styled string
 	}
@@ -699,7 +730,7 @@ function isBooked(room, time, date) {
 		return false;
 	}
 	for (let slot in day[room]) {
-		if (time >= day[room][slot].s && time < day[room][slot].e) {
+		if (time >= day[room][slot].o && time < (day[room][slot].o + day[room][slot].d)) {
 			return true;
 		}
 	}
@@ -728,7 +759,7 @@ function fillUsageStats(date) {
 			}
 			for (let slot in day[r]) {
 				const event = day[r][slot];
-				const time = event.e - event.s;
+				const time = event.d;
 				rs[r].time += time;
 				bs[b].time += time;
 				totalTime += time;
@@ -792,9 +823,7 @@ function createUsageStats() {
 	const slotNames = Array((endTime - startTime) / timeStep);
 
 	for (let i = 0; i < slotNames.length; i++) {
-		const time = i * timeStep + startTime;
-		const min = (time % 60).toString().padStart(2, "0");
-		slotNames[i] = `${Math.floor(time / 60)}:${min}`;
+		slotNames[i] = timeToString(i * timeStep + startTime);
 	}
 
 	const stackedOption = {
@@ -860,7 +889,7 @@ function totalTimeMinutes(date) {
 	let hours = 0;
 	for (let room in roomdata.rooms) {
 		for (let slot in day[room]) {
-			hours += day[room][slot].e - day[room][slot].s;
+			hours += day[room][slot].d;
 		}
 	}
 	return hours;
@@ -868,9 +897,8 @@ function totalTimeMinutes(date) {
 
 /** takes a time in minutes from midnight and returns a string in format hh:mm */
 function timeToString(time) {
-	const hour = Math.floor(time / 60).toString().padStart(2, "0");
 	const min = (time % 60).toString().padStart(2, "0");
-	return hour + ":" + min;
+	return Math.floor(time / 60) + ":" + min;
 }
 
 /** takes a Date object and returns a string in the format "YYYY-MM-DD" */
@@ -906,3 +934,4 @@ function openTab(evt) {
 	}
 }
 })();
+
