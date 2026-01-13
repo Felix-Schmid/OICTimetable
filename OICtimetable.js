@@ -6,7 +6,7 @@
 // @version      2025-05-27
 // @description  Make it easy to check which rooms are booked at the JKU OIC.
 // @author       Felix Schmid
-// @match        https://gwcal.jku.at/timetable
+// @match        https://gwcal.jku.at/gw/webacc
 // @icon         data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==
 // @grant        none
 // ==/UserScript==
