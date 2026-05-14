@@ -17,7 +17,7 @@
 const roomdata = {
 	"rooms": [
 		{"name": "Merkur", "building": 0, "capacity": 4, "color": "#8c8a89",
-			"id": "b2ljX21lcmt1ckBqa3UuYXQ_Y249Q2FsZW5kYXI"},
+		 	"id": "b2ljX21lcmt1ckBqa3UuYXQ_Y249Q2FsZW5kYXI"},
 		{"name": "Venus", "building": 0, "capacity": 4, "color": "#dab292",
 			"id": "b2ljX3ZlbnVzQGprdS5hdD9jbj1DYWxlbmRhcg"},
 		{"name": "Erde", "building": 0, "capacity": 4, "color": "#6288a8",
@@ -68,15 +68,12 @@ let timeDisplay;
 
 const page = `
 <!DOCTYPE html>
-<html lang="de">
+<html>
 <head>
 	<title>OIC Timetable</title>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-
-	<meta name="author" content="Felix Schmid"/>
-	<meta name="keywords" content=""/>
-	<meta name="description" content=""/>
+	<meta name="description" content="Make it easy to check which rooms are booked at the JKU OIC."/>
 </head>
 <body>
 <main>
@@ -87,7 +84,7 @@ body {
 }
 
 main, .chartRegion {
-	width: 900px;
+	width: 800px;
 	max-width: 100%;
 	margin: 0 auto;
 }
@@ -96,10 +93,15 @@ main, .chartRegion {
 	margin-bottom: 100px;
 }
 
-#disclaimer {
-	background-color: #e9e9e9;
-	border-left: 4px solid #c6c6c6;
-	padding: 8px;
+hr {
+	color: #e9e9e9;
+}
+
+dialog {
+	border: none !important;
+	border-radius: 10px;
+	box-shadow: 0 0 #0000, 0 0 #0000, 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+	padding: 1.6rem;
 }
 
 .errorcontainer {
@@ -107,10 +109,7 @@ main, .chartRegion {
 	border-left: 4px solid #ec5656;
 	padding: 8px;
 	display: none;
-}
-
-.errorcontainer p {
-	margin: 4px 0;
+	margin-bottom: 5px;
 }
 
 #datepanel {
@@ -120,42 +119,69 @@ main, .chartRegion {
 	margin: 0.83em 0 0.83em 0;
 }
 
-#datepanel > span {
-	font-size: 1.5em;
+#datepanel > h1 {
+	margin: 0 10px 0 0;
+}
+
+#datepanel input {
 	font-weight: bold;
+	border: none;
+	border-radius: 5px;
+	background-color: #e9e9e9;
+	padding: 8px;
 }
 
-#datepanel > div {
-	color: #8f8f8f;
+.svgBtn {
+	padding: 0;
 }
 
-#datepanel :first-child {
-	margin-right: 5px;
+.svgBtn > svg {
+	vertical-align: middle;
+}
+
+#refreshBtn {
+	padding: 4px 8px 4px 4px;
+}
+
+#infoBtn {
+	background-color: inherit;
+	padding: 4px;
 }
 
 /* tab control styling */
 .tab {
 	display: flex;
-	justify-content: center;
-	margin: 20px 0;
+	background-color: #e9e9e9;
+	border-radius: 99px;
+	margin: 16px auto;
+	width: fit-content;
+	box-shadow: 0 0 1px 0 rgba(24, 94, 224, 0.15), 0 6px 12px 0 rgba(24, 94, 224, 0.15);
+	gap: 4px;
+	padding: 4px;
 }
 
-.tab img {
+.tab svg {
 	vertical-align: middle;
-	margin-right: 5px;
+}
+
+button {
+	border: none;
+	border-radius: 5px;
+	cursor: pointer;
+	background-color: #e9e9e9;
 }
 
 .tab button {
-	border: none;
-	border-radius: 5px;
-	background-color: #e9e9e9;
-	cursor: pointer;
-	margin: 0 10px;
-	padding: 10px 12px;
+	border-radius: 99px;
+	padding: 8px 16px 8px 16px;
 }
 
-.tab button:hover {
+button:hover {
 	background-color: #afc6e8;
+}
+
+button:active {
+	background-color: #93a7c4;
 }
 
 .tab button.tablinkactive {
@@ -163,7 +189,7 @@ main, .chartRegion {
 	color: white;
 }
 
-.tab button.tablinkactive img {
+.tab button.tablinkactive svg {
 	filter: invert(100%);
 }
 
@@ -228,7 +254,7 @@ th > small {
 	height: 24px;
 	padding-left: 24px;
 	background-repeat: no-repeat;
-	background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAA1ElEQVRIx+2UzRGCMBCFv1gBdkALVCAlYAWWsFoBQwXOVqB2YAmUQAdaAh3gZQ8Zh58MwZED70YW3hd28wKb/i0X8pKqJkAJ5EAC1EAlIu9ogJm/zNhXC2RTkF3AD1x7zLG1curjEEA+UiuWAEQpBFDPrAUDLv5D13X+kKtogIi0wB64AzjnWtt5JiLNuoOmqilw8gKWWqmxFjXAYywLbsA4t/OfDmSgb9gqIs9JgKqeLUDJjI4cvyF9Qz7MNAe4hZyiImKmyaJJ9jLxm6vCOcem9esD2v8ydCSYqJYAAAAASUVORK5CYII=);
+	background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="%23919191"><path d="M367-527q-47-47-47-113t47-113q47-47 113-47t113 47q47 47 47 113t-47 113q-47 47-113 47t-113-47ZM160-160v-112q0-34 17.5-62.5T224-378q62-31 126-46.5T480-440q66 0 130 15.5T736-378q29 15 46.5 43.5T800-272v112H160Z"/></svg>')
 }
 
 #timetable {
@@ -281,40 +307,45 @@ th > small {
 	text-overflow: ellipsis;
 }
 </style>
-	<h1>OIC Timetable</h1>
-	<div id="disclaimer">
-		This is an unofficial service, provided without guarantees.
-		Results are based on data from <a href="https://gwcal.jku.at/">gwcal.jku.at</a>
-	</div>
+	<dialog id="infos">
+		<p>This is an unofficial service, provided without guarantees.</p>
+		<p>Results are based on data from <a href="https://gwcal.jku.at/">gwcal.jku.at</a></p>
+		<button id="infoCloseBtn" style="padding: 8px;">Close</button>
+	</dialog>
 
 	<div id="datepanel">
-		<span>Showing data for</span>
-		<button id="prevDayBtn"> &lt; </button>
+		<h1>OIC Timetable</h1>
+
+		<button id="prevDayBtn" class="svgBtn" aria-label="previous day"><svg width="28px" height="31px" viewBox="0 -960 960 960"><path d="M560-280 360-480l200-200v400Z"/></svg></button>
 		<input type="date" id="dateinput" name="date input"/>
-		<button id="nextDayBtn"> &gt; </button>
+		<button id="nextDayBtn" class="svgBtn" aria-label="next day"><svg width="28px" height="31px" viewBox="0 -960 960 960"><path d="M400-280v-400l200 200-200 200Z"/></svg></button>
+
 		<div style="flex-grow: 1"></div>
-		<button id="refreshBtn"> refresh </button>
-		<div id="lastRefresh"></div>
+		<button id="refreshBtn" class="svgBtn" aria-label="refresh"> <svg width="24px" height="24px" viewBox="0 -960 960 960" width="24px"><path d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-690v-110h80v280H520v-80h168q-32-56-87.5-88T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q77 0 139-44t87-116h84q-28 106-114 173t-196 67Z"/></svg> Updated: <em id="lastRefresh"></em> </button>
+		<button id="infoBtn" class="svgBtn" aria-label="info"> <svg width="24px" height="24px" viewBox="0 -960 960 960"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg> </button>
 	</div>
 
-	<div id="inputerror" class="errorcontainer"><p>
+	<div id="inputerror" class="errorcontainer">
 		Please select a valid date.
-	</p></div>
+	</div>
 
-	<div id="fetcherror" class="errorcontainer"><p>
-		There was an error while fetching booking data.<br>
-		This may be because you are not logged in. Make sure you are logged in
-		<a target="_blank" rel="noopener noreferrer" href="https://gwcal.jku.at/gwcal/calendar/b2ljX3VyYW51c0Bqa3UuYXQ_Y249Q2FsZW5kYXI?Calendar.format=html">here</a>
+	<div id="fetcherror" class="errorcontainer">
+		There was an error while fetching calendar data.<br>
+		Please ensure that the official service is available
+		<a target="_blank" rel="noopener noreferrer" href="https://gwcal.jku.at/gwcal/calendar/b2ljX3VyYW51c0Bqa3UuYXQ_Y249Q2FsZW5kYXI?Calendar.format=html">here</a>,
 		and then refresh.<br>
-		More details in the console.
-	</p></div>
+	</div>
+
+	<hr>
 
 	<div class="tab">
 		<button id="openTable" class="tablinks">
-			<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAABH0lEQVRIS71VixXCIAykuIhuoBt0NSdRJ7EjdANdxOKlfEqBGGmtvEerEO7C5dNGbTyajfHVJwLjyCUnjIbhoMpY6wm0MoSOUcRKF48wvGDSuzjIWxojpnM9Muzw+4xJ7yLrHYdajdPWKX6QZ17DkYkOWeYnngeO4FvdudsZRxOUSSVaRWAvNd5NJBAEErcXEuRBTZhCZEQCKfe5K2QSbxCDeXZKBCETBXU8TuUNtEaVJhUxL4A03SsJxGTJDLK+NJcIfcVV8d+CPHWDWAy7WnKiWiKzA9KrLNVPCOqiUGjdUprWEUwNlq3kBxD3HjXO/Tw70xX7H88egThx7brFBn1wAgkZpkWmgTJE4Y/2O5jfMK8cQa0kov3SfBeBvcEb5fNMGd3UNFEAAAAASUVORK5CYII=" alt="timetable icon" /> Timetable
+			<svg width="24px" height="24px" viewBox="0 -960 960 960"><path d="M200-80q-33 0-56.5-23.5T120-160v-560q0-33 23.5-56.5T200-800h40v-80h80v80h320v-80h80v80h40q33 0 56.5 23.5T840-720v560q0 33-23.5 56.5T760-80H200Zm0-80h560v-400H200v400Zm0-480h560v-80H200v80Zm0 0v-80 80Zm80 240v-80h400v80H280Zm0 160v-80h280v80H280Z"/></svg>
+			Timetable
 		</button>
 		<button id="openUsage" class="tablinks">
-			<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAABa0lEQVRIS71V21HDMBA8KT/M8JMSnA5MB6GD0AEpIRUwqSAlGCqgBFKCO8Al8JMZPsBi7yQrjiyNkYPRjMbR43b39i62opmHmhmf/p2gREYVJj+zhsZtqD1i7r/w7ILDDN6wsTZ9aI5sE1wat1vc9ncEriEyqxSBcZenWtdp8/Eh0OBClk+QzoAAmYtAAVs0Xk1wUSaXpRMvBbmSQEPmsPCOQOgyCQpaojeeELizasslUV0BZmMd8aCTigww+W9sMGvMe1lrrFtZl2TbVZFCDaTMCYvgnnGZdyn2wSVvSPzAg/cZ/AHzPTMDXyQLflbK9rwG4I03yP7IsohteYTsGmGstLkhKj5pgf3vLa8D8DyCW3h7InWAqBRYBD8vgxjA2F6WRWNgw3NFRqOLWttKMv78XRTihgRoOVVcNkPsrWCV9U96a27fu1QGaxxUaNSCg+PQZ2cin4ojTl8wn1ME+b6PREz9sPxayOwEP3vsZRkXsbilAAAAAElFTkSuQmCC" alt="usage statistics icon" /> Usage Statistics
+			<svg width="24px" height="24px" viewBox="0 -960 960 960"><path d="m296-320 122-122 80 80 142-141v63h80v-200H520v80h63l-85 85-80-80-178 179 56 56Zm-96 200q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Zm0-560v560-560Z"/></svg>
+			Usage Statistics
 		</button>
 	</div>
 </main>
@@ -340,6 +371,12 @@ th > small {
 </body>
 </html>`;
 
+// TODO
+// * fix table header row not sticky
+// * show small spinner during refresh
+// * shareable deep links (date + tab)
+// * maybe rework fetch for when only some rooms can be loaded
+
 // call init to start all scripts
 init();
 
@@ -356,6 +393,8 @@ function init() {
 	document.getElementById("nextDayBtn").addEventListener("click", selectNextDay);
 	document.getElementById("refreshBtn").addEventListener("click", refresh);
 	document.getElementById("dateinput").addEventListener("change", dateInputChanged);
+	document.getElementById("infoBtn").addEventListener("click", showInfos);
+	document.getElementById("infoCloseBtn").addEventListener("click", closeInfos);
 
 	// add keyboard events
 	document.addEventListener('keydown', (event) => {
@@ -480,6 +519,14 @@ function addBookingTime(time, event, bookingsData, roomid) {
 	}
 }
 
+function showInfos() {
+	document.getElementById("infos").showModal();
+}
+
+function closeInfos() {
+	document.getElementById("infos").close();
+}
+
 /** update the "x minutes ago" and current time UI */
 function timeTickRefresh() {
 	const now = new Date();
@@ -489,10 +536,8 @@ function timeTickRefresh() {
 	let refreshText;
 	if (minsAgo < 1) {
 		refreshText = "just now";
-	} else if (minsAgo == 1) {
-		refreshText = minsAgo + " minute ago";
 	} else {
-		refreshText = minsAgo + " minutes ago";
+		refreshText = minsAgo + "m ago";
 	}
 	document.getElementById("lastRefresh").innerText = refreshText;
 
