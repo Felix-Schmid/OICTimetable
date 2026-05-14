@@ -17,7 +17,7 @@
 const roomdata = {
 	"rooms": [
 		{"name": "Merkur", "building": 0, "capacity": 4, "color": "#8c8a89",
-	     	"id": "b2ljX21lcmt1ckBqa3UuYXQ_Y249Q2FsZW5kYXI"},
+			"id": "b2ljX21lcmt1ckBqa3UuYXQ_Y249Q2FsZW5kYXI"},
 		{"name": "Venus", "building": 0, "capacity": 4, "color": "#dab292",
 			"id": "b2ljX3ZlbnVzQGprdS5hdD9jbj1DYWxlbmRhcg"},
 		{"name": "Erde", "building": 0, "capacity": 4, "color": "#6288a8",
@@ -131,10 +131,6 @@ main, .chartRegion {
 
 #datepanel :first-child {
 	margin-right: 5px;
-}
-
-.chart {
-	max-width: 700px;
 }
 
 /* tab control styling */
@@ -287,7 +283,7 @@ th > small {
 </style>
 	<h1>OIC Timetable</h1>
 	<div id="disclaimer">
-		<strong>Disclaimer:</strong> This is an unofficial service, provided without guarantees.
+		This is an unofficial service, provided without guarantees.
 		Results are based on data from <a href="https://gwcal.jku.at/">gwcal.jku.at</a>
 	</div>
 
@@ -331,21 +327,15 @@ th > small {
 
 	<h2> Most people are here at... </h2>
 	<p> Time slots with the most meetings at the same time. </p>
-	<div class="chart">
-		<canvas id="busyTimeSlots"></canvas>
-	</div>
+	<canvas id="busyTimeSlots"></canvas>
 
 	<h2> A monthly overview. </h2>
 	<p> The total meeting time for each day of the selected month. </p>
-	<div class="chart">
-		<canvas id="overviewMonth"></canvas>
-	</div>
+	<canvas id="overviewMonth"></canvas>
 
 	<h2> Are all rooms booked out? </h2>
-	<p> The rooms with the highest usage rate. </p>
-	<div class="chart">
-		<canvas id="busyRooms"></canvas>
-	</div>
+	<p> The rooms with the most meeting hours. </p>
+	<canvas id="busyRooms"></canvas>
 </div>
 </body>
 </html>`;
@@ -367,9 +357,17 @@ function init() {
 	document.getElementById("refreshBtn").addEventListener("click", refresh);
 	document.getElementById("dateinput").addEventListener("change", dateInputChanged);
 
+	// add keyboard events
+	document.addEventListener('keydown', (event) => {
+		switch (event.key) {
+			case "a": selectPrevDay(); break;
+			case "d": selectNextDay(); break;
+		}
+	});
+
 	createTable();
 	const now = new Date();
-	document.getElementById("dateinput").valueAsDate = now; // now
+	document.getElementById("dateinput").valueAsDate = now;
 	document.getElementById("openTable").click();
 
 	setInterval(timeTickRefresh, 10000); // refresh shown time every 10s
@@ -623,7 +621,7 @@ function changeDay(offset) {
 	const date = new Date(dateinput.value);
 	date.setDate(date.getDate() + offset);
 	dateinput.valueAsDate = date;
-	dateInputChanged();
+	selectDay(dateinput.value);
 }
 
 /** select the date for which the data should be shown (in "YYYY-MM-DD" format) */
@@ -728,58 +726,32 @@ function time2Pixels(time) {
 	return (time / timeStep * timeStepSize) + "px";
 }
 
-/** check if a given room is booked at a given time and date */
-function isBooked(room, time, date) {
-	const day = roomdata.bookings[date];
-
-	if (day == undefined || Object.keys(day).length === 0) { // days with no slots are empty objects
-		return false;
-	}
-	for (let slot in day[room]) {
-		if (time >= day[room][slot].o && time < (day[room][slot].o + day[room][slot].d)) {
-			return true;
-		}
-	}
-	return false;
-}
-
 /** fill the usage statistics for the specified date (in "YYYY-MM-DD" format) */
 function fillUsageStats(date) {
-	const rs = Array(Object.keys(roomdata.rooms).length);
-	const bs = Array(Object.keys(roomdata.buildings).length);
+	const rs = Array(roomdata.rooms.length);
 	const slots = Array((endTime - startTime) / timeStep).fill(0);
-	let totalTime = 0;
 
-	for (let b in buildings) {
-		if (bs[b] == undefined) {
-			bs[b] = { name:roomdata.buildings[b].name, time:0 };
+	for (let room in roomdata.rooms) {
+		rs[room] = { name:roomdata.rooms[room].name, time:0 };
+
+		const day = roomdata.bookings[date];
+		if (day == undefined || Object.keys(day).length === 0) { // days with no slots are empty objects
+			continue;
 		}
-		for (let r in buildings[b]) {
-			const room = buildings[b][r];
-			rs[r] = { name:room.name, time:0 };
 
-			const day = roomdata.bookings[date];
+		for (let booking in day[room]) {
+			const event = day[room][booking];
+			rs[room].time += event.d;
 
-			if (day == undefined || Object.keys(day).length === 0) { // days with no slots are empty objects
-				continue;
-			}
-			for (let slot in day[r]) {
-				const event = day[r][slot];
-				const time = event.d;
-				rs[r].time += time;
-				bs[b].time += time;
-				totalTime += time;
-			}
-			for (let i = 0; i < slots.length; i++) {
-				const time = i * timeStep + startTime;
-				if (isBooked(r, time, date)) {
-					slots[i]++;
-				}
-			}
+			let eventStart = event.o;
+			do {
+				let slot = (eventStart - startTime) / timeStep;
+				eventStart += timeStep;
+				slots[slot]++;
+			} while (eventStart < event.o + event.d);
 		}
+		rs[room].time /= 60;
 	}
-
-	const totalHours = Math.round(totalTime / 60);
 
 	let mDate = new Date(date);
 	let firstDay = new Date(mDate.getFullYear(), mDate.getMonth(), 1);
@@ -788,14 +760,15 @@ function fillUsageStats(date) {
 
 	while (currentDate.getMonth() === mDate.getMonth()) {
 		const label = `${currentDate.getDate()}. (${dayNames[currentDate.getDay()]})`;
-		const minutes = totalTimeMinutes(dateToString(currentDate));
-		month.push({ name:label, time:minutes });
+		const hours = totalTimeHours(dateToString(currentDate));
+		month.push({ name:label, time:hours });
 
 		currentDate.setDate(currentDate.getDate() + 1);
 	}
 
-	// total hours
-	document.getElementById("usageStatsTitle").innerHTML = `A total of ~${totalHours} hours of meetings this day!`;
+	// title tag
+	const totalHours = Math.round(month[mDate.getDate() - 1].time);
+	document.getElementById("usageStatsTitle").innerHTML = `A total of ~${totalHours} hours of meetings this day.`;
 
 	if (totalHours <= 2) {
 		document.getElementById("usageStatsHint").innerHTML = "*crickets*";
@@ -805,22 +778,21 @@ function fillUsageStats(date) {
 		document.getElementById("usageStatsHint").innerHTML = "Seems like another busy day at the OIC.";
 	}
 
-	// busiest time slots
+	// update charts
 	const btsChart = usageCharts.busyTimeSlots;
 	btsChart.data.datasets[0].data = slots;
 	btsChart.update();
 
-	rs.sort((a, b) => b.time - a.time);
-	const brChart = usageCharts.busyRooms;
-	brChart.data.labels = rs.slice(0, 15).map(item => item.name);
-	brChart.data.datasets[0].data = rs.slice(0, 15).map(item => item.time / (slots.length * timeStep) * 100);
-	brChart.data.datasets[1].data = rs.slice(0, 15).map(item => 100 - (item.time / (slots.length * timeStep)) * 100);
-	brChart.update();
-
 	const omChart = usageCharts.overviewMonth;
 	omChart.data.labels = month.map(item => item.name);
-	omChart.data.datasets[0].data = month.map(item => item.time / 60);
+	omChart.data.datasets[0].data = month.map(item => item.time);
 	omChart.update();
+
+	rs.sort((a, b) => b.time - a.time);
+	const brChart = usageCharts.busyRooms;
+	brChart.data.labels = rs.map(item => item.name);
+	brChart.data.datasets[0].data = rs.map(item => item.time);
+	brChart.update();
 }
 
 /** create all charts for the usage stats page */
@@ -832,13 +804,6 @@ function createUsageStats() {
 		slotNames[i] = timeToString(i * timeStep + startTime);
 	}
 
-	const stackedOption = {
-		scales: {
-			x: { stacked: true },
-			y: { stacked: true }
-		}
-	};
-
 	// busiest time slots
 	usageCharts.busyTimeSlots = new Chart(document.getElementById("busyTimeSlots"), {
 		type: "line",
@@ -847,7 +812,7 @@ function createUsageStats() {
 			datasets: [{
 				label: "# of meetings",
 				data: [],
-				backgroundColor: "#5b9bd5"
+				backgroundColor: "#0d6efd"
 			}]
 		}
 	});
@@ -858,9 +823,9 @@ function createUsageStats() {
 		data: {
 			labels: Array(30).fill(""),
 			datasets: [{
-				label: "total meeting time",
+				label: "total hours of meetings",
 				data: [],
-				backgroundColor: "#5b9bd5"
+				backgroundColor: "#0d6efd"
 			}]
 		}
 	});
@@ -869,36 +834,30 @@ function createUsageStats() {
 	usageCharts.busyRooms = new Chart(document.getElementById("busyRooms"), {
 		type: "bar",
 		data: {
-			labels: Array(15).fill(""),
+			labels: Array(roomdata.rooms.length).fill(""),
 			datasets: [{
-				label: "% occupied",
+				label: "hours of meetings",
 				data: [],
-				backgroundColor: "#ed7d31"
-			}, {
-				label: "% free",
-				data: [],
-				backgroundColor: "#70ad47"
+				backgroundColor: "#0d6efd"
 			}]
-		},
-		options: stackedOption
+		}
 	});
 }
 
 /** gets the total hours of meetings for a specified date */
-function totalTimeMinutes(date) {
+function totalTimeHours(date) {
 	const day = roomdata.bookings[date];
-
 	if (day == undefined || Object.keys(day).length === 0) { // days with no slots are empty objects
 		return 0;
 	}
 
-	let hours = 0;
+	let minutes = 0;
 	for (let room in roomdata.rooms) {
-		for (let slot in day[room]) {
-			hours += day[room][slot].d;
+		for (let booking in day[room]) {
+			minutes += day[room][booking].d;
 		}
 	}
-	return hours;
+	return minutes / 60;
 }
 
 /** takes a time in minutes from midnight and returns a string in format hh:mm */
