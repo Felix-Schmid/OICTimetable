@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @require      https://unpkg.com/ical.js@2.1.0/dist/ical.es5.min.cjs
 // @require      https://cdn.jsdelivr.net/npm/chart.js
-// @version      2025-05-27
+// @version      2026-05-15
 // @description  Make it easy to check which rooms are booked at the JKU OIC.
 // @author       Felix Schmid
 // @match        https://gwcal.jku.at/gw/webacc
@@ -17,7 +17,7 @@
 const roomdata = {
 	"rooms": [
 		{"name": "Merkur", "building": 0, "capacity": 4, "color": "#8c8a89",
-		 	"id": "b2ljX21lcmt1ckBqa3UuYXQ_Y249Q2FsZW5kYXI"},
+			"id": "b2ljX21lcmt1ckBqa3UuYXQ_Y249Q2FsZW5kYXI"},
 		{"name": "Venus", "building": 0, "capacity": 4, "color": "#dab292",
 			"id": "b2ljX3ZlbnVzQGprdS5hdD9jbj1DYWxlbmRhcg"},
 		{"name": "Erde", "building": 0, "capacity": 4, "color": "#6288a8",
@@ -201,22 +201,13 @@ button:active {
 table {
 	border-collapse: collapse;
 	margin: 0 auto;
-	overflow: clip;
-}
-
-table th:first-child {
-	top: -50px;
-	left: 0;
-	text-align: right;
-	padding: 0 10px;
-	font-weight: normal;
 }
 
 tbody > tr:hover { /* for row hover selection */
 	background-color: #9ec5fe;
 }
 
-thead > tr > th {
+thead {
 	translate: -14px;
 }
 
@@ -225,7 +216,7 @@ tr {
 }
 
 .buildingTr {
-	height: 30px !important;
+	height: 30px;
 }
 
 td {
@@ -235,12 +226,19 @@ td {
 	padding: 0;
 }
 
+tbody th {
+	left: 0;
+	padding: 0 10px;
+	text-align: right;
+	font-weight: normal;
+	white-space: nowrap;
+}
+
 th {
 	position: sticky;
 	top: 0;
 	min-width: 26px;
 	background-color: white;
-	white-space: nowrap;
 	z-index: 200;
 }
 
@@ -372,10 +370,10 @@ th > small {
 </html>`;
 
 // TODO
-// * fix table header row not sticky
-// * show small spinner during refresh
-// * shareable deep links (date + tab)
+// * fix table header row not sticky: table has overflow:auto, which does not work with sticky...
+// * show small spinner during refresh: https://cssloaders.github.io/
 // * maybe rework fetch for when only some rooms can be loaded
+// * shareable deep links (date + tab)
 
 // call init to start all scripts
 init();
@@ -426,9 +424,9 @@ function refreshData() {
 	lastRefresh = new Date();
 	timeTickRefresh(); // immediatly update refresh text
 	roomdata.bookings = {}; // clear any previous data
-	clearTable(); // remove events from table to indicate when refresh is finished
+	clearTable(); // remove events from table to indicate refresh
 	let nFetched = 0;
-	const toFetch = Object.entries(roomdata.rooms).length;
+	const toFetch = roomdata.rooms.length;
 
 	for (const [key, value] of Object.entries(roomdata.rooms)) {
 		fetch(baseUrl + roomdata.rooms[key].id + urlArgs)
