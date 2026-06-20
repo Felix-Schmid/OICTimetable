@@ -42,9 +42,11 @@ let timeDisplay;
 // * maybe rework fetch for when only some rooms can be loaded
 // * shareable deep links (date + tab)
 
-function init() {
-	console.log("init called!");
+window.onload = function() {
+	init();
+};
 
+function init() {
 	// connect event handlers
 	document.getElementById("openTable").addEventListener("click", openTab);
 	document.getElementById("openTable").tabName = "timetable";
