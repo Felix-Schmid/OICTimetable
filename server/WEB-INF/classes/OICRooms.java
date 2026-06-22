@@ -28,6 +28,7 @@ public class OICRooms extends HttpServlet {
 		synchronized void refreshIfNeeded() {
 			if (lastFetch.isBefore(Instant.now().minusSeconds(MAX_AGE_SECONDS))) {
 				fetchData();
+				lastFetch = Instant.now();
 			}
 		}
 
@@ -40,7 +41,6 @@ public class OICRooms extends HttpServlet {
 				HttpRequest request = HttpRequest.newBuilder().uri(origin).GET().build();
 				HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 				data = response.body();
-				lastFetch = Instant.now();
 			} catch (InterruptedException e) {
 				Thread.currentThread().interrupt();
 			} catch (IOException e) {
