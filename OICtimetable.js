@@ -51,7 +51,6 @@ const roomdata = {
 	}
 };
 const baseUrl = "https://gwcal.jku.at/gwcal/calendar/";
-const urlArgs = "?Calendar.format=ICS";
 const buildings = {};
 const usageCharts = {};
 const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -425,7 +424,7 @@ function refreshData() {
 	const toFetch = roomdata.rooms.length;
 
 	for (const [key, value] of Object.entries(roomdata.rooms)) {
-		fetch(baseUrl + roomdata.rooms[key].id + urlArgs)
+		fetch(baseUrl + roomdata.rooms[key].id)
 			.then(response => {
 				if (response.ok) {
 					return response.text();

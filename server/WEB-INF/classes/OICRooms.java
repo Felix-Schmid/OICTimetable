@@ -14,7 +14,7 @@ public class OICRooms extends HttpServlet {
 
 		static final HttpClient client = HttpClient.newHttpClient();
 		static final int MAX_AGE_SECONDS = 60;
-		static final String fetchURLPattern = "https://gwcal.jku.at/gwcal/calendar/{0}?Calendar.format=ICS";
+		static final String fetchURLPattern = "https://gwcal.jku.at/gwcal/calendar/{0}";
 
 		private URI origin;
 		private Instant lastFetch;
