@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>OIC Room Display</title>
+	<link rel="stylesheet" href="screen.css" type="text/css">
+	<script type="text/javascript" src="https://unpkg.com/ical.js@2.1.0/dist/ical.es5.min.cjs" defer></script>
+	<script type="text/javascript" src="common.js" defer></script>
+	<script type="text/javascript" src="screen.js" defer></script>
+</head>
+<body>
+	<div id="e-ink-display" class="is-busy">
+		<header id="room-name">
+		</header>
+
+		<main class="current-status">
+			<h2 id="current-name"></h2>
+			<p id="current-time"></p>
+		</main>
+
+		<section id="upcoming-meetings">
+			<h3>Upcoming</h3>
+			<ul id="upcoming-list">
+			</ul>
+		</section>
+	</div>
+</body>
+</html>

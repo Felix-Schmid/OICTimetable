@@ -1,0 +1,124 @@
+body {
+	background-color: #f0f0f0;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	margin: 0;
+	font-family: sans-serif;
+}
+
+/* --- Main container simulating the e-ink display --- */
+#e-ink-display {
+	/* Screen resolution of the e-ink displays */
+	width: 1024px;
+	height: 758px;
+	
+	background-color: #ffffff;
+	color: #000000;
+
+	/* Flexbox layout to stack sections vertically */
+	display: flex;
+	flex-direction: column;
+}
+
+/* --- 1. Room Name (Top Section) --- */
+#room-name {
+	padding: 8px 20px;
+	font-size: 48px;
+	font-weight: 700; /* Bold */
+	text-align: center;
+	border-bottom: 4px solid #000000;
+}
+
+/* --- 2. Current Status (Middle Section) --- */
+.current-status {
+	flex-grow: 1; /* This makes the section fill the available space */
+	
+	/* Center the content perfectly */
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	padding: 40px;
+}
+
+/* Style variations for the "Busy" vs "Free" state */
+.is-busy .current-status {
+	background-color: #000000;
+	color: #ffffff;
+}
+
+.current-status h2 {
+	font-size: 96px;
+	font-weight: 700;
+	margin: 0;
+	text-align: center;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: -webkit-box;
+	-webkit-line-clamp: 2; /* number of lines to show */
+	        line-clamp: 2;
+	-webkit-box-orient: vertical;
+}
+
+/* Make the "FREE" text even bigger for impact */
+.is-free .current-status h2 {
+	font-size: 160px;
+}
+
+.current-status p {
+	font-size: 56px;
+	font-weight: 400; /* Regular */
+	margin: 16px 0 0 0;
+}
+
+/* --- 3. Upcoming Meetings (Bottom Section) --- */
+#upcoming-meetings {
+	padding: 24px 40px;
+	border-top: 4px solid #000000;
+}
+
+#upcoming-meetings h3 {
+	font-size: 32px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 2px;
+	margin: 0 0 20px 0;
+	color: #555555;
+}
+
+#upcoming-meetings ul {
+	list-style-type: none;
+	margin: 0;
+	padding: 0;
+	font-size: 40px;
+}
+
+#upcoming-meetings li {
+	display: flex;
+	justify-content: space-between;
+	padding: 16px 0;
+	border-top: 2px solid #cccccc;
+}
+
+#upcoming-meetings li:first-child {
+	border-top: none; /* No line above the first item */
+}
+
+#upcoming-meetings li small {
+	color: #555555;
+}
+
+#upcoming-meetings span {
+	white-space: nowrap;
+}
+
+.meeting-time {
+	font-weight: 700;
+	margin-right: 40px;
+}
+
+.meeting-name {
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
