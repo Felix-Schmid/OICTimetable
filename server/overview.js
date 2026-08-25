@@ -1,27 +1,4 @@
-const roomdata = {
-	"rooms": [
-		{"name": "Merkur", "building": 0, "capacity": 4, "color": "#8c8a89", "id": "merkur"},
-		{"name": "Venus", "building": 0, "capacity": 4, "color": "#dab292", "id": "venus"},
-		{"name": "Erde", "building": 0, "capacity": 4, "color": "#6288a8", "id": "erde"},
-		{"name": "Mars", "building": 0, "capacity": 4, "color": "#f27c5f", "id": "mars"},
-		{"name": "Jupiter", "building": 0, "capacity": 10, "color": "#c08137", "id": "jupiter"},
-		{"name": "Saturn", "building": 0, "capacity": 10, "color": "#dab778", "id": "saturn"},
-		{"name": "Uranus", "building": 0, "capacity": 10, "color": "#95bbbe", "id": "uranus"},
-		{"name": "Neptun", "building": 0, "capacity": 10, "color": "#7595bf", "id": "neptun"},
-		{"name": "Bumblebee", "building": 1, "capacity": 10, "color": "#debd45", "id": "bumblebee"},
-		{"name": "Eve", "building": 1, "capacity": 10, "color": "#4e79e8", "id": "eve"},
-		{"name": "Optimus-Prime", "building": 1, "capacity": 4, "color": "#d04a4a", "id": "optimus-prime"},
-		{"name": "Seminar-room", "building": 1, "capacity": 20, "color": "#54a348", "id": "seminar-room"},
-		{"name": "Wall-e", "building": 1, "capacity": 10, "color": "#d9884a", "id": "wall-e"}
-	],
-	"buildings": [
-		"Erdgeschoss",
-		"1. Obergeschoss"
-	],
-	"bookings": {
-	}
-};
-const baseUrl = "room/";
+let bookings = {};
 const buildings = {};
 const usageCharts = {};
 const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -88,13 +65,13 @@ function refreshData() {
 
 	lastRefresh = new Date();
 	timeTickRefresh(); // immediatly update refresh text
-	roomdata.bookings = {}; // clear any previous data
+	bookings = {}; // clear any previous data
 	clearTable(); // remove events from table to indicate refresh
 	let nFetched = 0;
-	const toFetch = roomdata.rooms.length;
+	const toFetch = Object.keys(rooms).length;
 
-	for (const [key, value] of Object.entries(roomdata.rooms)) {
-		fetch(baseUrl + roomdata.rooms[key].id)
+	for (const [key, value] of Object.entries(rooms)) {
+		fetch(baseUrl + key)
 			.then(response => {
 				if (response.ok) {
 					return response.text();
@@ -102,7 +79,7 @@ function refreshData() {
 				throw new Error("Could not fetch data");
 			})
 			.then(data => {
-				addEventsFromICS(data, key);
+				bookings[key] = getBookingsFromICAL(data);
 				nFetched++;
 				if (nFetched == toFetch) {
 					selectDay(document.getElementById("dateinput").value);
@@ -112,73 +89,6 @@ function refreshData() {
 				fetcherror.style.display = "block";
 				console.warn("There was an error while parsing data for room " + value.name + ": " + error);
 			});
-	}
-}
-
-function addEventsFromICS(icsData, roomid) {
-	const parseRes = ICAL.parse(icsData);
-	const comp = new ICAL.Component(parseRes);
-	const vevents = comp.getAllSubcomponents("vevent");
-
-	vevents.forEach(event => {
-		addBookingEvent(event, roomdata.bookings, roomid);
-	});
-}
-
-function addBookingEvent(event, bookingsData, roomid) {
-	const date = new Date();
-	date.setFullYear(date.getFullYear() + 1); // expand max 1 year into future
-	const rangeEnd = ICAL.Time.fromJSDate(date);
-	const start = event.getFirstPropertyValue("dtstart")
-
-	const expand = new ICAL.RecurExpansion({
-		component: event,
-		dtstart: start
-	});
-
-	let expanded = false;
-	let next; // next is always an ICAL.Time or null
-	while (next = expand.next()) {
-		expanded = true;
-		if (next.compare(rangeEnd) > 0) {
-			break;
-		}
-		addBookingTime(next, event, bookingsData, roomid);
-	}
-	if (!expanded) {
-		addBookingTime(start, event, bookingsData, roomid);
-	}
-}
-
-function addBookingTime(time, event, bookingsData, roomid) {
-	const current = time.toJSDate();
-	const summary = event.getFirstPropertyValue("summary");
-
-	const start = event.getFirstPropertyValue("dtstart").toJSDate();
-	const end = event.getFirstPropertyValue("dtend").toJSDate();
-	let duration = (end - start) / (1000 * 60); // ms to minutes
-
-	let currentEnd = new Date(current);
-	currentEnd = currentEnd.setMinutes(currentEnd.getMinutes() + duration);
-
-	while (current < currentEnd) {
-		const offset = current.getHours() * 60 + current.getMinutes();
-		const durationDay = Math.min(duration, endTime - offset); // clamp to end of current day
-		duration -= durationDay;
-
-		const dateKey = dateToString(current);
-		if (bookingsData[dateKey] === undefined) {
-			bookingsData[dateKey] = {};
-		}
-		if (bookingsData[dateKey][roomid] === undefined) {
-			bookingsData[dateKey][roomid] = [];
-		}
-		bookingsData[dateKey][roomid].push(
-			{"o": offset, "d": durationDay, "s": summary}
-		);
-
-		current.setHours(0, 0, 0, 0); // always begins at midnight for next days
-		current.setDate(current.getDate() + 1);
 	}
 }
 
@@ -216,17 +126,17 @@ function createTable() {
 	tbl.id = "maintable";
 
 	// group rooms into buildings
-	for (let room in roomdata.rooms) {
-		const r = roomdata.rooms[room];
-		const bNo = r.building;
+	for (let room in rooms) {
+		const r = rooms[room];
+		const b = r.building;
 
-		if (roomdata.buildings[bNo] == undefined) {
+		if (b == undefined) {
 			continue; // skip rooms that are not part of a valid building
 		}
-		if (buildings[bNo] == undefined) {
-			buildings[bNo] = {};
+		if (buildings[b] == undefined) {
+			buildings[b] = {};
 		}
-		buildings[bNo][room] = r;
+		buildings[b][room] = r;
 	}
 
 	// add header row with time stamps
@@ -259,7 +169,7 @@ function createTable() {
 		tr.appendChild(th);
 		tr.classList.add("buildingTr");
 		const str = document.createElement("strong");
-		str.appendChild(document.createTextNode(roomdata.buildings[b]));
+		str.appendChild(document.createTextNode(b));
 		th.appendChild(str);
 		if (timeMarkLine === undefined) { // first building row has time marker line
 			const timeCell = tr.insertCell();
@@ -296,7 +206,7 @@ function createTable() {
 function createTimeMarkLine(parent) {
 	timeMarkLine = document.createElement("div");
 	timeMarkLine.id = "timeMarkLine";
-	const height = roomdata.rooms.length * roomRowHeight + roomdata.buildings.length * buildingRowHeight;
+	const height = Object.keys(rooms).length * roomRowHeight + Object.keys(buildings).length * buildingRowHeight;
 	timeMarkLine.style.height = height + "px";
 	parent.appendChild(timeMarkLine);
 
@@ -371,7 +281,7 @@ function fillTable(date) {
 
 			// super secret easter egg code ;)
 			if (date.startsWith("2805")) {
-				const roomName = roomdata.rooms[r].name;
+				const roomName = rooms[r].name;
 				if (roomName == "Eve") {
 					addEventToRow({"o": 1080, "d": 120, "s": "Meet Wall-e today?"}, cell, r);
 				} else if (roomName == "Wall-e") {
@@ -380,12 +290,12 @@ function fillTable(date) {
 			}
 			// end easter egg code
 
-			const day = roomdata.bookings[date];
+			const day = bookings[r][date];
 			if (day == undefined || Object.keys(day).length === 0) { // days with no slots are empty objects
 				continue;
 			}
-			for (let slot in day[r]) {
-				const event = day[r][slot];
+			for (let slot in day) {
+				const event = day[slot];
 				addEventToRow(event, cell, r);
 			}
 		}
@@ -416,7 +326,7 @@ function addEventToRow(event, parent, roomKey) {
 	div.classList.add("event");
 	div.style.left = time2Pixels(event.o - startTime);
 	div.style.width = time2Pixels(event.d);
-	div.style.backgroundColor = roomdata.rooms[roomKey].color;
+	div.style.backgroundColor = rooms[roomKey].color;
 	div.title = titleStr + "\n" + timeStr;
 
 	const title = div.appendChild(document.createElement("p"));
@@ -436,20 +346,21 @@ function time2Pixels(time) {
 
 /** fill the usage statistics for the specified date (in "YYYY-MM-DD" format) */
 function fillUsageStats(date) {
-	const rs = Array(roomdata.rooms.length);
+	const rs = Array();
 	const slots = Array((endTime - startTime) / timeStep).fill(0);
 
-	for (let room in roomdata.rooms) {
-		rs[room] = { name:roomdata.rooms[room].name, time:0 };
+	for (let room in rooms) {
+		const rt = { name:rooms[room].name, time:0 }
+		rs.push(rt);
 
-		const day = roomdata.bookings[date];
+		const day = bookings[room][date];
 		if (day == undefined || Object.keys(day).length === 0) { // days with no slots are empty objects
 			continue;
 		}
 
-		for (let booking in day[room]) {
-			const event = day[room][booking];
-			rs[room].time += event.d;
+		for (let booking in day) {
+			const event = day[booking];
+			rt.time += event.d;
 
 			let eventStart = event.o;
 			do {
@@ -458,7 +369,7 @@ function fillUsageStats(date) {
 				slots[slot]++;
 			} while (eventStart < event.o + event.d);
 		}
-		rs[room].time /= 60;
+		rt.time /= 60;
 	}
 
 	let mDate = new Date(date);
@@ -542,7 +453,7 @@ function createUsageStats() {
 	usageCharts.busyRooms = new Chart(document.getElementById("busyRooms"), {
 		type: "bar",
 		data: {
-			labels: Array(roomdata.rooms.length).fill(""),
+			labels: Array(Object.keys(rooms).length).fill(""),
 			datasets: [{
 				label: "hours of meetings",
 				data: [],
@@ -554,15 +465,13 @@ function createUsageStats() {
 
 /** gets the total hours of meetings for a specified date */
 function totalTimeHours(date) {
-	const day = roomdata.bookings[date];
-	if (day == undefined || Object.keys(day).length === 0) { // days with no slots are empty objects
-		return 0;
-	}
-
 	let minutes = 0;
-	for (let room in roomdata.rooms) {
-		for (let booking in day[room]) {
-			minutes += day[room][booking].d;
+	for (let room in rooms) {
+		for (let booking in bookings[room][date]) {
+			if (booking == undefined || booking.length == 0) { // days with no slots are empty objects
+				continue;
+			}
+			minutes += bookings[room][date][booking].d;
 		}
 	}
 	return minutes / 60;
