@@ -1,4 +1,5 @@
 let bookings = {};
+let roomID;
 let refreshTimerID = 0;
 
 // ==== html elements
@@ -18,14 +19,25 @@ function init() {
 	currentTime = document.getElementById("current-time");
 	eInkDisplay = document.getElementById("e-ink-display");
 	upcomingList = 	document.getElementById("upcoming-list");
+
 	onhashchange = () => { refreshData() };
+
+	// listen to SSE calendar updates and refresh calendar
+	const evtSource = new EventSource("events");
+	evtSource.addEventListener("calendarUpdate", (event) => {
+		const calendarID = event.data;
+		if (calendarID == roomID) {
+			refreshData();
+		}
+	});
+
 	refreshData();
 }
 
 /** fetch data from OIC, and refresh the screen */
 function refreshData() {
 	bookings = {}; // clear any previous data
-	
+
 	let hash = window.location.hash;
 	if (hash) {
 		hash = hash.substring(1); // remove "#"
@@ -35,7 +47,8 @@ function refreshData() {
 		roomName.innerText = "[ERROR] Invalid room ID";
 		return;
 	}
-	roomName.innerText = rooms[hash].name;
+	roomID = hash;
+	roomName.innerText = rooms[roomID].name;
 
 	fetch(baseUrl + hash)
 		.then(response => {

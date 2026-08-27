@@ -4,7 +4,7 @@
     xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee
                         https://jakarta.ee/xml/ns/jakartaee/web-app_6_1.xsd"
     version="6.1"
-    metadata-complete="true">
+    metadata-complete="false">
 
     <display-name>OIC Timetable</display-name>
     <description>
@@ -15,12 +15,16 @@
 
     <servlet>
       <servlet-name>OICRoomsServlet</servlet-name>
-      <servlet-class>OICRooms</servlet-class>
+      <servlet-class>OICRoomsServlet</servlet-class>
     </servlet>
 
     <servlet-mapping>
         <servlet-name>OICRoomsServlet</servlet-name>
         <url-pattern>/room/*</url-pattern>
     </servlet-mapping>
-</web-app>
 
+    <Connector port="8080" protocol="org.apache.coyote.http11.Http11NioProtocol"
+           maxConnections="10000"
+           maxThreads="200"
+           asyncTimeout="0" />
+</web-app>
