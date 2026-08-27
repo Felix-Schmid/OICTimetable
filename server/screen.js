@@ -1,4 +1,5 @@
 let bookings = {};
+let refreshTimerID = 0;
 
 // ==== html elements
 let roomName;
@@ -84,13 +85,16 @@ function refreshScreen() {
 
 		if (upcoming.length == 0) {
 			currentTime.innerText = "For Today";
+			scheduleRefresh(60 * 24); // refresh at midnight
 		} else {
 			currentTime.innerText = "Until " + minutesToClock(upcoming[0].o);
+			scheduleRefresh(upcoming[0].o);
 		}
 	} else {
 		eInkDisplay.classList = ["is-busy"];
 		setEventTitle(currentEvent, currentName);
 		setEventTime(currentEvent, currentTime);
+		scheduleRefresh(currentEvent.o + currentEvent.d);
 	}
 
 	// set upcoming section
@@ -114,6 +118,15 @@ function refreshScreen() {
 	if (upcoming.length == 0) {
 		upcomingList.innerHTML = "<li><i><small>No further meetings are currently scheduled for today.</small></i></li>";
 	}
+}
+
+/** schedule the next screen refresh in minutes from midnight */
+function scheduleRefresh(minutes) {
+	clearTimeout(refreshTimerID) // clear a potential previous refresh timer (e.g., on data refresh)
+	const refresh = new Date();
+	refresh.setHours(0, minutes, 1); // add one second to make sure refresh happens after new event
+	const eta = refresh - Date.now();
+	refreshTimerID = setTimeout(refreshScreen, eta);
 }
 
 /** remove all booking data from the info screen */
