@@ -154,7 +154,7 @@ function setEventTitle(event, nameElem) {
 	if (event.s && event.s.trim()) {
 		nameElem.innerText = event.s; // use innerText to avoid injection
 	} else {
-		nameElem.innerHTML = "<i>No Title</i>"; // use innerHTML for styled string
+		nameElem.innerHTML = "<i>Untitled Meeting</i>"; // use innerHTML for styled string
 	}
 }
 
